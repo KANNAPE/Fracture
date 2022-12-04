@@ -1,7 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "FractureGameMode.h"
-#include "FractureCharacter.h"
+#include "Character/FractureCharacter.h"
 #include "UObject/ConstructorHelpers.h"
 
 AFractureGameMode::AFractureGameMode()
