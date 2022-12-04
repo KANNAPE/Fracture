@@ -1,0 +1,34 @@
+{
+    "Version": "1.1",
+    "Data": {
+        "Source": "d:\\travail\\3eme annee\\projetperso\\fracture\\source\\fracture\\tp_weaponcomponent.cpp",
+        "ProvidedModule": "",
+        "PCH": "d:\\travail\\3eme annee\\projetperso\\fracture\\intermediate\\build\\win64\\fractureeditor\\development\\engine\\sharedpch.engine.shadowerrors.h.pch",
+        "Includes": [
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\intermediate\\build\\win64\\unrealeditor\\development\\fracture\\definitions.fracture.h",
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\source\\fracture\\tp_weaponcomponent.h",
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\intermediate\\build\\win64\\unrealeditor\\inc\\fracture\\tp_weaponcomponent.generated.h",
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\source\\fracture\\fracturecharacter.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\source\\runtime\\engine\\classes\\gameframework\\character.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\source\\runtime\\engine\\classes\\gameframework\\charactermovementreplication.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\charactermovementreplication.generated.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\source\\runtime\\engine\\classes\\gameframework\\rootmotionsource.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\rootmotionsource.generated.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\character.generated.h",
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\intermediate\\build\\win64\\unrealeditor\\inc\\fracture\\fracturecharacter.generated.h",
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\source\\fracture\\fractureprojectile.h",
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\intermediate\\build\\win64\\unrealeditor\\inc\\fracture\\fractureprojectile.generated.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\source\\runtime\\engine\\classes\\kismet\\gameplaystatics.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\source\\runtime\\engine\\classes\\kismet\\kismetsystemlibrary.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\source\\runtime\\coreuobject\\public\\uobject\\propertyaccessutil.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\kismetsystemlibrary.generated.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\source\\runtime\\engine\\classes\\sound\\dialoguetypes.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\dialoguetypes.generated.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\source\\runtime\\engine\\classes\\kismet\\gameplaystaticstypes.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\gameplaystaticstypes.generated.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\gameplaystatics.generated.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

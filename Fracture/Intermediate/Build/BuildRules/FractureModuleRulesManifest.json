@@ -1,0 +1,14 @@
+{
+	"SourceFiles": [
+		"D:\\Travail\\3eme annee\\ProjetPerso\\Project\\Fracture\\Source\\Fracture\\Fracture.Build.cs",
+		"D:\\Travail\\3eme annee\\ProjetPerso\\Project\\Fracture\\Plugins\\Developer\\RiderLink\\Source\\RD\\RD.Build.cs",
+		"D:\\Travail\\3eme annee\\ProjetPerso\\Project\\Fracture\\Plugins\\Developer\\RiderLink\\Source\\RiderBlueprint\\RiderBlueprint.Build.cs",
+		"D:\\Travail\\3eme annee\\ProjetPerso\\Project\\Fracture\\Plugins\\Developer\\RiderLink\\Source\\RiderGameControl\\RiderGameControl.Build.cs",
+		"D:\\Travail\\3eme annee\\ProjetPerso\\Project\\Fracture\\Plugins\\Developer\\RiderLink\\Source\\RiderLink\\RiderLink.Build.cs",
+		"D:\\Travail\\3eme annee\\ProjetPerso\\Project\\Fracture\\Plugins\\Developer\\RiderLink\\Source\\RiderLogging\\RiderLogging.Build.cs",
+		"D:\\Travail\\3eme annee\\ProjetPerso\\Project\\Fracture\\Plugins\\Developer\\RiderLink\\Source\\RiderShaderInfo\\RiderShaderInfo.Build.cs",
+		"D:\\Travail\\3eme annee\\ProjetPerso\\Project\\Fracture\\Source\\Fracture.Target.cs",
+		"D:\\Travail\\3eme annee\\ProjetPerso\\Project\\Fracture\\Source\\FractureEditor.Target.cs"
+	],
+	"EngineVersion": "5.0.3"
+}

@@ -1,0 +1,14 @@
+{
+	"Targets": [
+		{
+			"Name": "Fracture",
+			"Path": "D:\\Travail\\3eme annee\\ProjetPerso\\Fracture\\Source\\Fracture.Target.cs",
+			"Type": "Game"
+		},
+		{
+			"Name": "FractureEditor",
+			"Path": "D:\\Travail\\3eme annee\\ProjetPerso\\Fracture\\Source\\FractureEditor.Target.cs",
+			"Type": "Editor"
+		}
+	]
+}

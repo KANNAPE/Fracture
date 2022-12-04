@@ -1,0 +1,15 @@
+{
+    "Version": "1.1",
+    "Data": {
+        "Source": "d:\\travail\\3eme annee\\projetperso\\fracture\\intermediate\\build\\win64\\unrealeditor\\inc\\fracture\\fractureprojectile.gen.cpp",
+        "ProvidedModule": "",
+        "PCH": "d:\\travail\\3eme annee\\projetperso\\fracture\\intermediate\\build\\win64\\fractureeditor\\development\\engine\\sharedpch.engine.shadowerrors.h.pch",
+        "Includes": [
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\intermediate\\build\\win64\\unrealeditor\\development\\fracture\\definitions.fracture.h",
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\source\\fracture\\fractureprojectile.h",
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\intermediate\\build\\win64\\unrealeditor\\inc\\fracture\\fractureprojectile.generated.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

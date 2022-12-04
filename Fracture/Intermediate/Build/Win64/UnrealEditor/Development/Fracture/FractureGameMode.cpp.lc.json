@@ -1,0 +1,27 @@
+{
+    "Version": "1.1",
+    "Data": {
+        "Source": "d:\\travail\\3eme annee\\projetperso\\fracture\\source\\fracture\\fracturegamemode.cpp",
+        "ProvidedModule": "",
+        "PCH": "d:\\travail\\3eme annee\\projetperso\\fracture\\intermediate\\build\\win64\\fractureeditor\\development\\engine\\sharedpch.engine.shadowerrors.h.pch",
+        "Includes": [
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\intermediate\\build\\win64\\unrealeditor\\development\\fracture\\definitions.fracture.h",
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\source\\fracture\\fracturegamemode.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\source\\runtime\\engine\\classes\\gameframework\\gamemodebase.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\source\\runtime\\engine\\classes\\engine\\serverstatreplicator.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\serverstatreplicator.generated.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\gamemodebase.generated.h",
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\intermediate\\build\\win64\\unrealeditor\\inc\\fracture\\fracturegamemode.generated.h",
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\source\\fracture\\fracturecharacter.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\source\\runtime\\engine\\classes\\gameframework\\character.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\source\\runtime\\engine\\classes\\gameframework\\charactermovementreplication.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\charactermovementreplication.generated.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\source\\runtime\\engine\\classes\\gameframework\\rootmotionsource.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\rootmotionsource.generated.h",
+            "j:\\unrealengine\\ue_5.0\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\character.generated.h",
+            "d:\\travail\\3eme annee\\projetperso\\fracture\\intermediate\\build\\win64\\unrealeditor\\inc\\fracture\\fracturecharacter.generated.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}
