@@ -6,6 +6,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
+#include "CrashReportCore/Public/Android/AndroidErrorReport.h"
 #include "Fracture/CustomComponents/ElytraMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/InputSettings.h"
@@ -65,13 +66,9 @@ void AFractureCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAxis("Move Forward / Backward", this, &AFractureCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("Move Right / Left", this, &AFractureCharacter::MoveRight);
 
-	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
-	// "Mouse" versions handle devices that provide an absolute delta, such as a mouse.
-	// "Gamepad" versions are for devices that we choose to treat as a rate of change, such as an analog joystick
+	// Bind mouse events
 	PlayerInputComponent->BindAxis("Turn Right / Left Mouse", this, &APawn::AddControllerYawInput);
 	PlayerInputComponent->BindAxis("Look Up / Down Mouse", this, &APawn::AddControllerPitchInput);
-	PlayerInputComponent->BindAxis("Turn Right / Left Gamepad", this, &AFractureCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("Look Up / Down Gamepad", this, &AFractureCharacter::LookUpAtRate);
 	
 	PlayerInputComponent->BindAction("SwitchMode", IE_Pressed, this, &AFractureCharacter::SwitchMode);
 }
@@ -84,45 +81,61 @@ void AFractureCharacter::OnPrimaryAction()
 
 void AFractureCharacter::MoveForward(float Value)
 {
-	if (Value != 0.0f)
+	const auto* ElytraMovementComponent = Cast<UElytraMovementComponent>(GetMovementComponent());
+
+	// If the character is flying, WASD keys are not used.
+	if(IsValid(ElytraMovementComponent) && !ElytraMovementComponent->IsJetFlying())
 	{
-		// add movement in that direction
-		AddMovementInput(GetActorForwardVector(), Value);
-	}
+		if (Value != 0.0f)
+		{
+			// add movement in that direction
+			AddMovementInput(GetActorForwardVector(), Value);
+		}
+	}	
 }
 
 void AFractureCharacter::MoveRight(float Value)
 {
-	if (Value != 0.0f)
+	const auto* ElytraMovementComponent = Cast<UElytraMovementComponent>(GetMovementComponent());
+
+	// If the character is flying, WASD keys are not used.
+	if(IsValid(ElytraMovementComponent) && !ElytraMovementComponent->IsJetFlying())
 	{
-		// add movement in that direction
-		AddMovementInput(GetActorRightVector(), Value);
+		if (Value != 0.0f)
+		{
+			// add movement in that direction
+			AddMovementInput(GetActorRightVector(), Value);
+		}	
 	}
-}
-
-void AFractureCharacter::TurnAtRate(float Rate)
-{
-	// calculate delta for this frame from the rate information
-	AddControllerYawInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
-}
-
-void AFractureCharacter::LookUpAtRate(float Rate)
-{
-	// calculate delta for this frame from the rate information
-	AddControllerPitchInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
 }
 
 void AFractureCharacter::SwitchMode()
 {
-	UCharacterMovementComponent* characterMovementComponent = GetCharacterMovement();
-	
-	if(!IsValid(characterMovementComponent)	|| characterMovementComponent->IsMovingOnGround())
+	auto* ElytraMovementComponent = Cast<UElytraMovementComponent>(GetCharacterMovement());
+
+	if(!IsValid(ElytraMovementComponent))
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Character is grounded!")));
+		// assertion
+		//UE_LOG(LogTemp, Error, TEXT("Elytra Movement Component is null!"))
 		return;
 	}
-	
-	LaunchCharacter(FVector::UpVector * UpImpulse, true, true);
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Up we go!")));
+	// CMovementMode = ECustomMovementMode::CMOVE_Walking
+	if(!ElytraMovementComponent->IsJetFlying())
+	{
+		// Can't fly if the character is grounded
+		if(ElytraMovementComponent->IsMovingOnGround())
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Cannot initiate flying while character is grounded!")));
+			return;
+		}
+
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Flying mode (fun)")));
+		ElytraMovementComponent->SetFlying();
+		return;
+	}
+
+	// CMovementMode = ECustomMovementMode::CMOVE_JetFlying
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Walking mode (boring)")));
+	ElytraMovementComponent->SetFlying(false);
 }

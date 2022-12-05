@@ -30,14 +30,12 @@ public:
 	AFractureCharacter(const FObjectInitializer& ObjectInitializer);
 
 protected:
-	virtual void BeginPlay();
+	virtual void BeginPlay() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
 	
 	void OnPrimaryAction();
 	void MoveForward(float Val);
 	void MoveRight(float Val);
-	void TurnAtRate(float Rate);
-	void LookUpAtRate(float Rate);
 
 	void SwitchMode();
 
@@ -51,6 +49,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Interaction")
 	FOnUseItem OnUseItem;
 
+	// Will be used later
 	UPROPERTY(EditAnywhere, Category = "Physics")
 	float UpImpulse = 50.f;
 };

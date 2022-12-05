@@ -6,6 +6,15 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "ElytraMovementComponent.generated.h"
 
+UENUM(BlueprintType)
+enum class ECustomMovementMode : uint8
+{
+	CMOVE_None			UMETA(Hidden),
+	CMOVE_Walking		UMETA(DisplayName = "Walking"), // temp
+	CMOVE_JetFlying		UMETA(DisplayName = "Jet Flying"),
+	CMOVE_MAX			UMETA(Hidden)
+};
+
 /**
  * 
  */
@@ -39,6 +48,9 @@ class FRACTURE_API UElytraMovementComponent : public UCharacterMovementComponent
 
 	bool Safe_bWantsToSprint;
 
+	// Temp
+	ECustomMovementMode CMovementMode = ECustomMovementMode::CMOVE_Walking;
+
 public:
 	UElytraMovementComponent();
 	
@@ -47,7 +59,10 @@ protected:
 	
 public:
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
+	bool IsJetFlying() const { return CMovementMode == ECustomMovementMode::CMOVE_JetFlying; }
 
+	void SetFlying(const bool Flying = true);
+	
 	UFUNCTION(BlueprintCallable) void SprintPressed();
 	UFUNCTION(BlueprintCallable) void SprintReleased();
 };

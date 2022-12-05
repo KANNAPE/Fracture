@@ -91,6 +91,11 @@ FNetworkPredictionData_Client* UElytraMovementComponent::GetPredictionData_Clien
 	return ClientPredictionData;
 }
 
+void UElytraMovementComponent::SetFlying(const bool Flying)
+{
+	CMovementMode = Flying ? ECustomMovementMode::CMOVE_JetFlying : ECustomMovementMode::CMOVE_Walking;
+}
+
 void UElytraMovementComponent::SprintPressed()
 {
 	Safe_bWantsToSprint = true;
