@@ -1,28 +1,18 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright (c) 2022 Thomas Berger. Project published under MIT License.
+
 
 #include "FractureCharacter.h"
-#include "../Template/FractureProjectile.h"
-#include "Animation/AnimInstance.h"
+
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/InputComponent.h"
-#include "CrashReportCore/Public/Android/AndroidErrorReport.h"
 #include "Fracture/CustomComponents/ElytraMovementComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
-#include "GameFramework/InputSettings.h"
 
-
-//////////////////////////////////////////////////////////////////////////
-// AFractureCharacter
 
 AFractureCharacter::AFractureCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UElytraMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(55.f, 96.0f);
-
-	// set our turn rates for input
-	TurnRateGamepad = 45.f;
 
 	// Create a CameraComponent	
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
@@ -38,19 +28,9 @@ AFractureCharacter::AFractureCharacter(const FObjectInitializer& ObjectInitializ
 	Mesh1P->CastShadow = false;
 	Mesh1P->SetRelativeRotation(FRotator(1.9f, -19.19f, 5.2f));
 	Mesh1P->SetRelativeLocation(FVector(-0.5f, -4.4f, -155.7f));
-
 }
 
-void AFractureCharacter::BeginPlay()
-{
-	// Call the base class  
-	Super::BeginPlay();
-
-}
-
-//////////////////////////////////////////////////////////////////////////// Input
-
-void AFractureCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
+void AFractureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
@@ -73,38 +53,47 @@ void AFractureCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAction("SwitchMode", IE_Pressed, this, &AFractureCharacter::SwitchMode);
 }
 
+void AFractureCharacter::BeginPlay()
+{
+	Super::BeginPlay();	
+}
+
+void AFractureCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+}
+
 void AFractureCharacter::OnPrimaryAction()
 {
-	// Trigger the OnItemUsed Event
 	OnUseItem.Broadcast();
 }
 
-void AFractureCharacter::MoveForward(float Value)
+void AFractureCharacter::MoveForward(float Val)
 {
 	const auto* ElytraMovementComponent = Cast<UElytraMovementComponent>(GetMovementComponent());
 
 	// If the character is flying, WASD keys are not used.
 	if(IsValid(ElytraMovementComponent) && !ElytraMovementComponent->IsJetFlying())
 	{
-		if (Value != 0.0f)
+		if (Val != 0.0f)
 		{
 			// add movement in that direction
-			AddMovementInput(GetActorForwardVector(), Value);
+			AddMovementInput(GetActorForwardVector(), Val);
 		}
 	}	
 }
 
-void AFractureCharacter::MoveRight(float Value)
+void AFractureCharacter::MoveRight(float Val)
 {
 	const auto* ElytraMovementComponent = Cast<UElytraMovementComponent>(GetMovementComponent());
 
 	// If the character is flying, WASD keys are not used.
 	if(IsValid(ElytraMovementComponent) && !ElytraMovementComponent->IsJetFlying())
 	{
-		if (Value != 0.0f)
+		if (Val != 0.0f)
 		{
 			// add movement in that direction
-			AddMovementInput(GetActorRightVector(), Value);
+			AddMovementInput(GetActorRightVector(), Val);
 		}	
 	}
 }
@@ -115,8 +104,6 @@ void AFractureCharacter::SwitchMode()
 
 	if(!IsValid(ElytraMovementComponent))
 	{
-		// assertion
-		//UE_LOG(LogTemp, Error, TEXT("Elytra Movement Component is null!"))
 		return;
 	}
 
@@ -139,3 +126,8 @@ void AFractureCharacter::SwitchMode()
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Walking mode (boring)")));
 	ElytraMovementComponent->SetFlying(false);
 }
+
+
+
+
+
