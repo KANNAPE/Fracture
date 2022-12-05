@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright (c) 2022 Thomas Berger. Project published under MIT License.
 
 
 #include "ElytraMovementComponent.h"
@@ -91,7 +91,7 @@ FNetworkPredictionData_Client* UElytraMovementComponent::GetPredictionData_Clien
 	return ClientPredictionData;
 }
 
-void UElytraMovementComponent::SetFlying(const bool Flying)
+void UElytraMovementComponent::SetFlyingMode(const bool Flying)
 {
 	CMovementMode = Flying ? ECustomMovementMode::CMOVE_JetFlying : ECustomMovementMode::CMOVE_Walking;
 }

@@ -1,11 +1,13 @@
-// Copyright (c) 2022 Thomas Berger. Project published under MIT License.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 
 #include "FractureCharacter.h"
 
+#include "FractureSuit.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Fracture/CustomComponents/ElytraMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 
 AFractureCharacter::AFractureCharacter(const FObjectInitializer& ObjectInitializer)
@@ -55,7 +57,13 @@ void AFractureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 void AFractureCharacter::BeginPlay()
 {
-	Super::BeginPlay();	
+	Super::BeginPlay();
+
+	const UWorld* World = GetWorld();
+	if(IsValid(World))
+	{
+		Suit = Cast<AFractureSuit>(UGameplayStatics::GetActorOfClass(World, AFractureSuit::StaticClass()));
+	}
 }
 
 void AFractureCharacter::Tick(float DeltaSeconds)
@@ -100,31 +108,41 @@ void AFractureCharacter::MoveRight(float Val)
 
 void AFractureCharacter::SwitchMode()
 {
-	auto* ElytraMovementComponent = Cast<UElytraMovementComponent>(GetCharacterMovement());
+	const UWorld* World = GetWorld();
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0);
 
-	if(!IsValid(ElytraMovementComponent))
+	if(IsValid(PlayerController) && IsValid(Suit))
 	{
-		return;
+		PlayerController->Possess(Suit);
 	}
 
-	// CMovementMode = ECustomMovementMode::CMOVE_Walking
-	if(!ElytraMovementComponent->IsJetFlying())
-	{
-		// Can't fly if the character is grounded
-		if(ElytraMovementComponent->IsMovingOnGround())
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Cannot initiate flying while character is grounded!")));
-			return;
-		}
-
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Flying mode (fun)")));
-		ElytraMovementComponent->SetFlying();
-		return;
-	}
-
-	// CMovementMode = ECustomMovementMode::CMOVE_JetFlying
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Walking mode (boring)")));
-	ElytraMovementComponent->SetFlying(false);
+	// TODO : Switch the feature of the suit to a custom movement mode, CMOVE_JetFlying
+	// 
+	// auto* ElytraMovementComponent = Cast<UElytraMovementComponent>(GetCharacterMovement());
+	//
+	// if(!IsValid(ElytraMovementComponent))
+	// {
+	// 	return;
+	// }
+	//
+	// // CMovementMode = ECustomMovementMode::CMOVE_Walking
+	// if(!ElytraMovementComponent->IsJetFlying())
+	// {
+	// 	// Can't fly if the character is grounded
+	// 	if(ElytraMovementComponent->IsMovingOnGround())
+	// 	{
+	// 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Cannot initiate flying while character is grounded!")));
+	// 		return;
+	// 	}
+	//
+	// 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Flying mode (fun)")));
+	// 	ElytraMovementComponent->SetFlyingMode();
+	// 	return;
+	// }
+	//
+	// // CMovementMode = ECustomMovementMode::CMOVE_JetFlying
+	// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Walking mode (boring)")));
+	// ElytraMovementComponent->SetFlyingMode(false);
 }
 
 

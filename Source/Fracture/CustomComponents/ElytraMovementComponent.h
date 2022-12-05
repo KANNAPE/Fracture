@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright (c) 2022 Thomas Berger. Project published under MIT License.
 
 #pragma once
 
@@ -61,7 +61,7 @@ public:
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 	bool IsJetFlying() const { return CMovementMode == ECustomMovementMode::CMOVE_JetFlying; }
 
-	void SetFlying(const bool Flying = true);
+	void SetFlyingMode(const bool Flying = true);
 	
 	UFUNCTION(BlueprintCallable) void SprintPressed();
 	UFUNCTION(BlueprintCallable) void SprintReleased();

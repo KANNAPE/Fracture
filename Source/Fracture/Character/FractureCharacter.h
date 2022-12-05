@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Thomas Berger. Project published under MIT License.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,6 +18,10 @@ class FRACTURE_API AFractureCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FirstPersonCameraComponent;
+
+	// For now, we'll place the suit in the level, and we'll switch the possessed pawn when calling SwitchMode
+	UPROPERTY(VisibleAnywhere)
+	class AFractureSuit* Suit;
 
 public:
 	AFractureCharacter(const FObjectInitializer& ObjectInitializer);
