@@ -39,6 +39,8 @@ void AFractureSuit::BeginPlay()
 	}
 
 	Driver = Cast<UPrimitiveComponent>(RootComponent);
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Emerald, FString::Printf(TEXT("Suit spawned")));
 }
 
 // Called every frame

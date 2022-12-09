@@ -13,6 +13,8 @@
 AFractureCharacter::AFractureCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UElytraMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
+	ElytraMovementComponent = Cast<UElytraMovementComponent>(GetCharacterMovement());
+	
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(55.f, 96.0f);
 
@@ -41,6 +43,13 @@ void AFractureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
+	// Bind run event
+	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AFractureCharacter::Sprint);
+	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AFractureCharacter::StopSprinting);
+
+	// Bind crouch event
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AFractureCharacter::ToggleCrouching);
+
 	// Bind fire event
 	PlayerInputComponent->BindAction("PrimaryAction", IE_Pressed, this, &AFractureCharacter::OnPrimaryAction);
 
@@ -51,7 +60,8 @@ void AFractureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	// Bind mouse events
 	PlayerInputComponent->BindAxis("Turn Right / Left Mouse", this, &APawn::AddControllerYawInput);
 	PlayerInputComponent->BindAxis("Look Up / Down Mouse", this, &APawn::AddControllerPitchInput);
-	
+
+	// Bind Switch Walking <-> JetFlying event
 	PlayerInputComponent->BindAction("SwitchMode", IE_Pressed, this, &AFractureCharacter::SwitchMode);
 }
 
@@ -76,12 +86,29 @@ void AFractureCharacter::OnPrimaryAction()
 	OnUseItem.Broadcast();
 }
 
+void AFractureCharacter::Sprint()
+{
+	check(ElytraMovementComponent)
+	ElytraMovementComponent->SprintPressed();
+}
+
+void AFractureCharacter::StopSprinting()
+{
+	check(ElytraMovementComponent)
+	ElytraMovementComponent->SprintReleased();
+}
+
+void AFractureCharacter::ToggleCrouching()
+{
+	check(ElytraMovementComponent)
+	ElytraMovementComponent->CrouchPressed();
+}
+
 void AFractureCharacter::MoveForward(float Val)
 {
-	const auto* ElytraMovementComponent = Cast<UElytraMovementComponent>(GetMovementComponent());
-
+	check(ElytraMovementComponent)
 	// If the character is flying, WASD keys are not used.
-	if(IsValid(ElytraMovementComponent) && !ElytraMovementComponent->IsJetFlying())
+	if(!ElytraMovementComponent->IsJetFlying())
 	{
 		if (Val != 0.0f)
 		{
@@ -93,10 +120,9 @@ void AFractureCharacter::MoveForward(float Val)
 
 void AFractureCharacter::MoveRight(float Val)
 {
-	const auto* ElytraMovementComponent = Cast<UElytraMovementComponent>(GetMovementComponent());
-
+	check(ElytraMovementComponent)
 	// If the character is flying, WASD keys are not used.
-	if(IsValid(ElytraMovementComponent) && !ElytraMovementComponent->IsJetFlying())
+	if(!ElytraMovementComponent->IsJetFlying())
 	{
 		if (Val != 0.0f)
 		{

@@ -5,10 +5,10 @@
 
 #include "GameFramework/Character.h"
 
-// FSavedMove_Fracture
-bool UElytraMovementComponent::FSavedMove_Fracture::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const
+#pragma region FSavedMove_Fracture
+bool UElytraMovementComponent::FSavedMove_FractureCharacter::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const
 {
-	const FSavedMove_Fracture* NewCharacterMove = static_cast<FSavedMove_Fracture*>(NewMove.Get());
+	const FSavedMove_FractureCharacter* NewCharacterMove = static_cast<FSavedMove_FractureCharacter*>(NewMove.Get());
 
 	if(Saved_bWantsToSprint != NewCharacterMove->Saved_bWantsToSprint)
 	{
@@ -17,13 +17,13 @@ bool UElytraMovementComponent::FSavedMove_Fracture::CanCombineWith(const FSavedM
 	
 	return FSavedMove_Character::CanCombineWith(NewMove, InCharacter, MaxDelta);
 }
-void UElytraMovementComponent::FSavedMove_Fracture::Clear()
+void UElytraMovementComponent::FSavedMove_FractureCharacter::Clear()
 {
 	FSavedMove_Character::Clear();
 
 	Saved_bWantsToSprint = 0;
 }
-uint8 UElytraMovementComponent::FSavedMove_Fracture::GetCompressedFlags() const
+uint8 UElytraMovementComponent::FSavedMove_FractureCharacter::GetCompressedFlags() const
 {
 	uint8 Result = Super::GetCompressedFlags();
 
@@ -31,7 +31,7 @@ uint8 UElytraMovementComponent::FSavedMove_Fracture::GetCompressedFlags() const
 
 	return Result;
 }
-void UElytraMovementComponent::FSavedMove_Fracture::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, FNetworkPredictionData_Client_Character& ClientData)
+void UElytraMovementComponent::FSavedMove_FractureCharacter::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, FNetworkPredictionData_Client_Character& ClientData)
 {
 	FSavedMove_Character::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 
@@ -39,7 +39,7 @@ void UElytraMovementComponent::FSavedMove_Fracture::SetMoveFor(ACharacter* C, fl
 
 	Saved_bWantsToSprint = CharacterMovement->Safe_bWantsToSprint;
 }
-void UElytraMovementComponent::FSavedMove_Fracture::PrepMoveFor(ACharacter* C)
+void UElytraMovementComponent::FSavedMove_FractureCharacter::PrepMoveFor(ACharacter* C)
 {
 	Super::PrepMoveFor(C);
 
@@ -47,25 +47,23 @@ void UElytraMovementComponent::FSavedMove_Fracture::PrepMoveFor(ACharacter* C)
 
 	CharacterMovement->Safe_bWantsToSprint = Saved_bWantsToSprint;
 }
-//
+#pragma endregion
 
 
-
-// FNetworkPredictionData_Client_Fracture
-UElytraMovementComponent::FNetworkPredictionData_Client_Fracture::FNetworkPredictionData_Client_Fracture(const UElytraMovementComponent& ClientMovement)
+#pragma region FNetworkPredictionData_Client_Fracture
+UElytraMovementComponent::FNetworkPredictionData_Client_FractureCharacter::FNetworkPredictionData_Client_FractureCharacter(const UElytraMovementComponent& ClientMovement)
 	: Super(ClientMovement) {}
-FSavedMovePtr UElytraMovementComponent::FNetworkPredictionData_Client_Fracture::AllocateNewMove()
+FSavedMovePtr UElytraMovementComponent::FNetworkPredictionData_Client_FractureCharacter::AllocateNewMove()
 {
-	return MakeShared<FSavedMove_Fracture>();
+	return MakeShared<FSavedMove_FractureCharacter>();
 }
-//
+#pragma endregion 
 
 
-
-
+#pragma region CMC
 UElytraMovementComponent::UElytraMovementComponent()
 {
-	
+	NavAgentProps.bCanCrouch = true;
 }
 
 void UElytraMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
@@ -75,21 +73,39 @@ void UElytraMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
 	Safe_bWantsToSprint = (Flags & FSavedMove_Character::FLAG_Custom_0) != 0;
 }
 
+void UElytraMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity)
+{
+	Super::OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
+
+	if(MovementMode == MOVE_Walking)
+	{
+		if(Safe_bWantsToSprint)
+		{
+			MaxWalkSpeed = Sprint_MaxWalkSpeed;
+			return;
+		}
+
+		MaxWalkSpeed = Walk_MaxWalkSpeed;
+	}
+}
+
 FNetworkPredictionData_Client* UElytraMovementComponent::GetPredictionData_Client() const
 {
-	check(PawnOwner != nullptr)
+	check(PawnOwner)
 
 	if(ClientPredictionData == nullptr)
 	{
 		UElytraMovementComponent* MutableThis = const_cast<UElytraMovementComponent*>(this);
 
-		MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_Fracture(*this);
+		MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_FractureCharacter(*this);
 		MutableThis->ClientPredictionData->MaxSmoothNetUpdateDist = 92.f;
 		MutableThis->ClientPredictionData->NoSmoothNetUpdateDist = 140.f;
 	}
 
 	return ClientPredictionData;
 }
+#pragma endregion
+
 
 void UElytraMovementComponent::SetFlyingMode(const bool Flying)
 {
@@ -104,4 +120,9 @@ void UElytraMovementComponent::SprintPressed()
 void UElytraMovementComponent::SprintReleased()
 {
 	Safe_bWantsToSprint = false;
+}
+
+void UElytraMovementComponent::CrouchPressed()
+{
+	bWantsToCrouch = !bWantsToCrouch;
 }

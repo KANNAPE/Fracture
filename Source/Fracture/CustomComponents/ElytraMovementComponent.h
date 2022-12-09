@@ -18,12 +18,15 @@ enum class ECustomMovementMode : uint8
 /**
  * 
  */
+
+// based on the tutorial of youtube channel delgoodie
+// https://www.youtube.com/watch?v=17D4SzewYZ0
 UCLASS()
 class FRACTURE_API UElytraMovementComponent : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
 
-	class FSavedMove_Fracture : public FSavedMove_Character
+	class FSavedMove_FractureCharacter : public FSavedMove_Character
 	{
 		typedef FSavedMove_Character Super;
 
@@ -36,15 +39,18 @@ class FRACTURE_API UElytraMovementComponent : public UCharacterMovementComponent
 		virtual void PrepMoveFor(ACharacter* C) override;
 	};
 
-	class FNetworkPredictionData_Client_Fracture : public FNetworkPredictionData_Client_Character
+	class FNetworkPredictionData_Client_FractureCharacter : public FNetworkPredictionData_Client_Character
 	{
 	public:
-		FNetworkPredictionData_Client_Fracture(const UElytraMovementComponent& ClientMovement);
+		FNetworkPredictionData_Client_FractureCharacter(const UElytraMovementComponent& ClientMovement);
 
 		typedef FNetworkPredictionData_Client_Character Super;
 
 		virtual FSavedMovePtr AllocateNewMove() override;
 	};
+
+	UPROPERTY(EditDefaultsOnly) float Sprint_MaxWalkSpeed;
+	UPROPERTY(EditDefaultsOnly) float Walk_MaxWalkSpeed;
 
 	bool Safe_bWantsToSprint;
 
@@ -56,13 +62,19 @@ public:
 	
 protected:
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
+	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity) override;
 	
 public:
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
-	bool IsJetFlying() const { return CMovementMode == ECustomMovementMode::CMOVE_JetFlying; }
 
+	// JetFlying temp
+	bool IsJetFlying() const { return CMovementMode == ECustomMovementMode::CMOVE_JetFlying; }
 	void SetFlyingMode(const bool Flying = true);
-	
+
+	// Sprint
 	UFUNCTION(BlueprintCallable) void SprintPressed();
 	UFUNCTION(BlueprintCallable) void SprintReleased();
+
+	// Crouch
+	UFUNCTION(BlueprintCallable) void CrouchPressed();
 };

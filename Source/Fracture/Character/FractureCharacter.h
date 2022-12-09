@@ -19,6 +19,9 @@ class FRACTURE_API AFractureCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FirstPersonCameraComponent;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	class UElytraMovementComponent* ElytraMovementComponent;
+
 	// For now, we'll place the suit in the level, and we'll switch the possessed pawn when calling SwitchMode
 	UPROPERTY(VisibleAnywhere)
 	class AFractureSuit* Suit;
@@ -32,15 +35,26 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 	
-	void OnPrimaryAction();
+	// Move
 	void MoveForward(float Val);
 	void MoveRight(float Val);
+
+	// Shoot
+	void OnPrimaryAction();
+
+	// Sprint
+	void Sprint();
+	void StopSprinting();
+
+	// Crouch
+	void ToggleCrouching();
 
 	void SwitchMode();
 
 public:
 	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
+	UElytraMovementComponent* GetElytraMovementComponent() const { return ElytraMovementComponent; }
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float TurnRateGamepad;
