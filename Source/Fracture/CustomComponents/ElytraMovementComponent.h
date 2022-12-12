@@ -11,6 +11,7 @@ enum class ECustomMovementMode : uint8
 {
 	CMOVE_None			UMETA(Hidden),
 	CMOVE_Walking		UMETA(DisplayName = "Walking"), // temp
+	CMOVE_Sliding		UMETA(DisplayName = "Sliding"),
 	CMOVE_JetFlying		UMETA(DisplayName = "Jet Flying"),
 	CMOVE_MAX			UMETA(Hidden)
 };
@@ -49,9 +50,18 @@ class FRACTURE_API UElytraMovementComponent : public UCharacterMovementComponent
 		virtual FSavedMovePtr AllocateNewMove() override;
 	};
 
-	UPROPERTY(EditDefaultsOnly) float Sprint_MaxWalkSpeed;
-	UPROPERTY(EditDefaultsOnly) float Walk_MaxWalkSpeed;
+	// Parameters
+	UPROPERTY(EditDefaultsOnly) float Sprint_MaxWalkSpeed = 1000.f;
+	UPROPERTY(EditDefaultsOnly) float Walk_MaxWalkSpeed = 500.f;
 
+	UPROPERTY(EditDefaultsOnly) float Slide_MinSpeed = 350.f;
+	UPROPERTY(EditDefaultsOnly) float Slide_EnterImpulse = 500.f;
+	UPROPERTY(EditDefaultsOnly) float Slide_GravityForce = 5000.f;
+	UPROPERTY(EditDefaultsOnly) float Slide_Friction = 1.3f;
+
+	UPROPERTY(Transient) class AFractureCharacter* FractureCharacterOwner;
+
+	// Safe booleans
 	bool Safe_bWantsToSprint;
 
 	// Temp
@@ -61,6 +71,8 @@ public:
 	UElytraMovementComponent();
 	
 protected:
+	virtual void InitializeComponent() override;
+	
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity) override;
 	
@@ -77,4 +89,13 @@ public:
 
 	// Crouch
 	UFUNCTION(BlueprintCallable) void CrouchPressed();
+
+	// Slide
+	void EnterSlide();
+	void ExitSlide();
+	void PhysSliding(float deltaTime, int32 Iterations);
+	bool GetSlideSurface(FHitResult& Hit) const;
+
+	// Custom movement mode getter
+	UFUNCTION(BlueprintPure) bool IsCustomMovementMode(ECustomMovementMode InCustomMovementMode) const; 
 };

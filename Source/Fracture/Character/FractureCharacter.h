@@ -55,6 +55,8 @@ public:
 	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
 	UElytraMovementComponent* GetElytraMovementComponent() const { return ElytraMovementComponent; }
+
+	FCollisionQueryParams GetIgnoreCharacterParams() const;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float TurnRateGamepad;

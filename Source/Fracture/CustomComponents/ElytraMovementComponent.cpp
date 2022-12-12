@@ -3,6 +3,8 @@
 
 #include "ElytraMovementComponent.h"
 
+#include "Components/CapsuleComponent.h"
+#include "Fracture/Character/FractureCharacter.h"
 #include "GameFramework/Character.h"
 
 #pragma region FSavedMove_Fracture
@@ -66,6 +68,13 @@ UElytraMovementComponent::UElytraMovementComponent()
 	NavAgentProps.bCanCrouch = true;
 }
 
+void UElytraMovementComponent::InitializeComponent()
+{
+	Super::InitializeComponent();
+
+	FractureCharacterOwner = Cast<AFractureCharacter>(GetOwner());
+}
+
 void UElytraMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
 {
 	Super::UpdateFromCompressedFlags(Flags);
@@ -125,4 +134,71 @@ void UElytraMovementComponent::SprintReleased()
 void UElytraMovementComponent::CrouchPressed()
 {
 	bWantsToCrouch = !bWantsToCrouch;
+}
+
+void UElytraMovementComponent::EnterSlide()
+{
+	
+}
+
+void UElytraMovementComponent::ExitSlide()
+{
+	
+}
+
+// Very fat function, the heart of all custom movement modes, so I guess I'll have to write down how it works
+void UElytraMovementComponent::PhysSliding(float deltaTime, int32 Iterations)
+{
+	// Boilerplate code, prevents the delta time value to be rounded to 0 (and so avoids division by 0)
+	if(deltaTime < MIN_TICK_TIME)
+	{
+		return;
+	}
+
+	RestorePreAdditiveRootMotionVelocity();
+
+	FHitResult SurfaceHit;
+	if(!GetSlideSurface(SurfaceHit) || Velocity.SizeSquared() < Slide_MinSpeed * Slide_MinSpeed)
+	{
+		ExitSlide();
+		StartNewPhysics(deltaTime, Iterations);
+		return;
+	}
+
+	// Applying surface gravity to the velocity, so the character doesn't fly off from sliding
+	// (it sticks to the ground)
+	Velocity += Slide_GravityForce * FVector::DownVector * deltaTime;
+
+	// Checking the input vector (Acceleration) for left or right inputs, so we can strafe while sliding
+	// (we then clamp the value so it's not as fast as if we were walking normally)
+	// Returns 0 if the player isn't pressing any keys
+	if(FMath::Abs(FVector::DotProduct(Acceleration.GetSafeNormal(), UpdatedComponent->GetRightVector())) > .5)
+	{
+		Acceleration = Acceleration.ProjectOnTo(UpdatedComponent->GetRightVector());
+	}
+	else
+	{
+		Acceleration = FVector::ZeroVector;
+	}
+
+	// Set the rest of the Velocity only if we don't have any root motion
+	// We set the gravity before because CalcVelocity DOES NOT APPLY GRAVITY
+	if(!HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity())
+	{
+		CalcVelocity(deltaTime, Slide_Friction, false, GetMaxBrakingDeceleration());
+	}
+	ApplyRootMotionToVelocity(deltaTime);
+}
+
+bool UElytraMovementComponent::GetSlideSurface(FHitResult& Hit) const
+{
+	const FVector Start = UpdatedComponent->GetComponentLocation();
+	const FVector End = Start + CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.f * FVector::DownVector;
+	const FName ProfileName = TEXT("BlockAll");
+	return GetWorld()->LineTraceSingleByProfile(Hit, Start, End, ProfileName, FractureCharacterOwner->GetIgnoreCharacterParams());
+}
+
+bool UElytraMovementComponent::IsCustomMovementMode(ECustomMovementMode InCustomMovementMode) const
+{
+	return MovementMode == EMovementMode::MOVE_Custom && CustomMovementMode == static_cast<uint8>(InCustomMovementMode);
 }
