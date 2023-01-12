@@ -7,10 +7,9 @@
 #include "ElytraMovementComponent.generated.h"
 
 UENUM(BlueprintType)
-enum class ECustomMovementMode : uint8
+enum ECustomMovementMode
 {
 	CMOVE_None			UMETA(Hidden),
-	CMOVE_Walking		UMETA(DisplayName = "Walking"), // temp
 	CMOVE_Sliding		UMETA(DisplayName = "Sliding"),
 	CMOVE_JetFlying		UMETA(DisplayName = "Jet Flying"),
 	CMOVE_MAX			UMETA(Hidden)
@@ -21,7 +20,7 @@ enum class ECustomMovementMode : uint8
  */
 
 // based on the tutorial of youtube channel delgoodie
-// https://www.youtube.com/watch?v=17D4SzewYZ0
+// https://www.youtube.com/watch?v=17D4SzewYZ0 33:31
 UCLASS()
 class FRACTURE_API UElytraMovementComponent : public UCharacterMovementComponent
 {
@@ -31,7 +30,9 @@ class FRACTURE_API UElytraMovementComponent : public UCharacterMovementComponent
 	{
 		typedef FSavedMove_Character Super;
 
+		// Saved Flag
 		uint8 Saved_bWantsToSprint:1;
+		uint8 Saved_bPrevWantsToCrouch:1;
 
 		virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
 		virtual void Clear() override;
@@ -63,9 +64,10 @@ class FRACTURE_API UElytraMovementComponent : public UCharacterMovementComponent
 
 	// Safe booleans
 	bool Safe_bWantsToSprint;
+	bool Safe_bPrevWantsToCrouch;
 
 	// Temp
-	ECustomMovementMode CMovementMode = ECustomMovementMode::CMOVE_Walking;
+	ECustomMovementMode CMovementMode;
 
 public:
 	UElytraMovementComponent();
@@ -75,12 +77,19 @@ protected:
 	
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity) override;
+
+	// where the crouch mechanic is being handled
+	// (and we need to set variables for the slide before the crouch is being updated)
+	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
+
+	// handles all the physics for the custom movement modes
+	virtual void PhysCustom(float deltaTime, int32 Iterations) override;
 	
 public:
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 
 	// JetFlying temp
-	bool IsJetFlying() const { return CMovementMode == ECustomMovementMode::CMOVE_JetFlying; }
+	bool IsJetFlying() const { return CMovementMode == CMOVE_JetFlying; }
 	void SetFlyingMode(const bool Flying = true);
 
 	// Sprint
@@ -89,6 +98,9 @@ public:
 
 	// Crouch
 	UFUNCTION(BlueprintCallable) void CrouchPressed();
+	
+	virtual bool IsMovingOnGround() const override;
+	virtual bool CanCrouchInCurrentState() const override;
 
 	// Slide
 	void EnterSlide();

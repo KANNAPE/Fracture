@@ -40,6 +40,7 @@ void UElytraMovementComponent::FSavedMove_FractureCharacter::SetMoveFor(ACharact
 	const UElytraMovementComponent* CharacterMovement = Cast<UElytraMovementComponent>(C->GetCharacterMovement());
 
 	Saved_bWantsToSprint = CharacterMovement->Safe_bWantsToSprint;
+	Saved_bPrevWantsToCrouch = CharacterMovement->Safe_bPrevWantsToCrouch;
 }
 void UElytraMovementComponent::FSavedMove_FractureCharacter::PrepMoveFor(ACharacter* C)
 {
@@ -48,6 +49,7 @@ void UElytraMovementComponent::FSavedMove_FractureCharacter::PrepMoveFor(ACharac
 	UElytraMovementComponent* CharacterMovement = Cast<UElytraMovementComponent>(C->GetCharacterMovement());
 
 	CharacterMovement->Safe_bWantsToSprint = Saved_bWantsToSprint;
+	CharacterMovement->Safe_bPrevWantsToCrouch = Saved_bPrevWantsToCrouch;
 }
 #pragma endregion
 
@@ -91,10 +93,47 @@ void UElytraMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVect
 		if(Safe_bWantsToSprint)
 		{
 			MaxWalkSpeed = Sprint_MaxWalkSpeed;
-			return;
 		}
+		else
+		{
+			MaxWalkSpeed = Walk_MaxWalkSpeed;
+		}		
+	}
 
-		MaxWalkSpeed = Walk_MaxWalkSpeed;
+	Safe_bPrevWantsToCrouch = bWantsToCrouch;
+}
+
+void UElytraMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
+{
+	if (MovementMode == MOVE_Walking && !bWantsToCrouch && Safe_bPrevWantsToCrouch)
+	{
+		FHitResult PotentialHitSurface;
+		if(Velocity.SizeSquared() > Slide_MinSpeed * Slide_MinSpeed && GetSlideSurface(PotentialHitSurface))
+		{
+			EnterSlide();
+		}
+	}
+
+	if (IsCustomMovementMode(CMOVE_Sliding) && !bWantsToCrouch)
+	{
+		ExitSlide();
+	}
+
+	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
+}
+
+void UElytraMovementComponent::PhysCustom(float deltaTime, int32 Iterations)
+{
+	Super::PhysCustom(deltaTime, Iterations);
+
+	switch(CustomMovementMode)
+	{
+	case CMOVE_Sliding:
+		PhysSliding(deltaTime, Iterations);
+		break;
+
+	default:
+		UE_LOG(LogTemp, Fatal, TEXT("Invalid Movement Mode"))
 	}
 }
 
@@ -118,7 +157,7 @@ FNetworkPredictionData_Client* UElytraMovementComponent::GetPredictionData_Clien
 
 void UElytraMovementComponent::SetFlyingMode(const bool Flying)
 {
-	CMovementMode = Flying ? ECustomMovementMode::CMOVE_JetFlying : ECustomMovementMode::CMOVE_Walking;
+	CMovementMode = Flying ? CMOVE_JetFlying : CMOVE_None;
 }
 
 void UElytraMovementComponent::SprintPressed()
@@ -136,14 +175,31 @@ void UElytraMovementComponent::CrouchPressed()
 	bWantsToCrouch = !bWantsToCrouch;
 }
 
+bool UElytraMovementComponent::IsMovingOnGround() const
+{
+	return Super::IsMovingOnGround() || IsCustomMovementMode(CMOVE_Sliding);
+}
+
+bool UElytraMovementComponent::CanCrouchInCurrentState() const
+{
+	return Super::CanCrouchInCurrentState() && IsMovingOnGround();
+}
+
 void UElytraMovementComponent::EnterSlide()
 {
-	
+	bWantsToCrouch = true;
+	Velocity += Velocity.GetSafeNormal2D() * Slide_EnterImpulse;
+	SetMovementMode(MOVE_Custom, CMOVE_Sliding);
 }
 
 void UElytraMovementComponent::ExitSlide()
 {
-	
+	bWantsToCrouch = false;
+
+	const FQuat NewRotation = FRotationMatrix::MakeFromXZ(UpdatedComponent->GetForwardVector().GetSafeNormal2D(), FVector::UpVector).ToQuat();
+	FHitResult Hit;
+	SafeMoveUpdatedComponent(FVector::ZeroVector, NewRotation, true, Hit);
+	SetMovementMode(MOVE_Walking);
 }
 
 // Very fat function, the heart of all custom movement modes, so I guess I'll have to write down how it works
@@ -185,9 +241,38 @@ void UElytraMovementComponent::PhysSliding(float deltaTime, int32 Iterations)
 	// We set the gravity before because CalcVelocity DOES NOT APPLY GRAVITY
 	if(!HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity())
 	{
-		CalcVelocity(deltaTime, Slide_Friction, false, GetMaxBrakingDeceleration());
+		CalcVelocity(deltaTime, Slide_Friction, true, GetMaxBrakingDeceleration());
 	}
 	ApplyRootMotionToVelocity(deltaTime);
+
+	// Perform Move
+	++Iterations;
+	bJustTeleported = false;
+
+	FVector OldLocation = UpdatedComponent->GetComponentLocation();
+	FQuat OldRotation = UpdatedComponent->GetComponentRotation().Quaternion();
+	FHitResult Hit(1.f);
+	FVector Adjusted = Velocity * deltaTime;
+	FVector VelPlaneDir = FVector::VectorPlaneProject(Velocity, SurfaceHit.Normal).GetSafeNormal();
+	FQuat NewRotation = FRotationMatrix::MakeFromXZ(VelPlaneDir, SurfaceHit.Normal).ToQuat();
+	SafeMoveUpdatedComponent(Adjusted, NewRotation, true, Hit);
+
+	if(Hit.Time < 1.f)
+	{
+		HandleImpact(Hit, deltaTime, Adjusted);
+		SlideAlongSurface(Adjusted, 1.f - Hit.Time, Hit.Normal, Hit, true);
+	}
+
+	FHitResult NewSurfaceHit;
+	if(!GetSlideSurface(NewSurfaceHit) || Velocity.SizeSquared() < Slide_MinSpeed * Slide_MinSpeed)
+	{
+		ExitSlide();
+	}
+
+	if(!bJustTeleported && !HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity())
+	{
+		Velocity = (UpdatedComponent->GetComponentLocation() - OldLocation) / deltaTime;
+	}
 }
 
 bool UElytraMovementComponent::GetSlideSurface(FHitResult& Hit) const
@@ -200,5 +285,5 @@ bool UElytraMovementComponent::GetSlideSurface(FHitResult& Hit) const
 
 bool UElytraMovementComponent::IsCustomMovementMode(ECustomMovementMode InCustomMovementMode) const
 {
-	return MovementMode == EMovementMode::MOVE_Custom && CustomMovementMode == static_cast<uint8>(InCustomMovementMode);
+	return MovementMode == MOVE_Custom && CustomMovementMode == InCustomMovementMode;
 }

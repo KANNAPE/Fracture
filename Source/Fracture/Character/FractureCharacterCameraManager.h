@@ -14,7 +14,7 @@ class FRACTURE_API AFractureCharacterCameraManager : public APlayerCameraManager
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditDefaultsOnly) float CrouchBlendDuration = .5f;
+	UPROPERTY(EditDefaultsOnly) float CrouchBlendDuration = .1f;
 	float CrouchBlendTime;
 
 public:
