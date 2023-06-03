@@ -40,7 +40,7 @@ class FRACTURE_API UElytraMovementComponent : public UCharacterMovementComponent
 		virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, FNetworkPredictionData_Client_Character& ClientData) override;
 		virtual void PrepMoveFor(ACharacter* C) override;
 	};
-
+	
 	class FNetworkPredictionData_Client_FractureCharacter : public FNetworkPredictionData_Client_Character
 	{
 	public:
@@ -89,7 +89,7 @@ public:
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 
 	// JetFlying temp
-	bool IsJetFlying() const { return CMovementMode == CMOVE_JetFlying; }
+	FORCEINLINE bool IsJetFlying() const { return CMovementMode == CMOVE_JetFlying; }
 	void SetFlyingMode(const bool Flying = true);
 
 	// Sprint

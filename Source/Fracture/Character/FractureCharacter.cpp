@@ -3,11 +3,16 @@
 
 #include "FractureCharacter.h"
 
-#include "FractureSuit.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "Fracture/CustomComponents/ElytraMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+
+#include "FractureSuit.h"
+#include "Fracture/CustomComponents/ElytraMovementComponent.h"
+#include "Fracture/Rewind/RewindActor.h"
+
+DEFINE_LOG_CATEGORY(LogFracture);
+
 
 
 AFractureCharacter::AFractureCharacter(const FObjectInitializer& ObjectInitializer)
@@ -63,6 +68,10 @@ void AFractureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 	// Bind Switch Walking <-> JetFlying event
 	PlayerInputComponent->BindAction("SwitchMode", IE_Pressed, this, &AFractureCharacter::SwitchMode);
+	PlayerInputComponent->BindAction("TestJetFlyMode", IE_Pressed, this, &AFractureCharacter::ToggleFlying);
+
+	// Bind Rewind events
+	PlayerInputComponent->BindAction("TriggerRewind", IE_Pressed, this, &AFractureCharacter::TriggerRewind);
 }
 
 void AFractureCharacter::BeginPlay()
@@ -169,6 +178,40 @@ void AFractureCharacter::SwitchMode()
 	// // CMovementMode = ECustomMovementMode::CMOVE_JetFlying
 	// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Walking mode (boring)")));
 	// ElytraMovementComponent->SetFlyingMode(false);
+}
+
+void AFractureCharacter::ToggleFlying()
+{
+	
+}
+
+void AFractureCharacter::TriggerRewind()
+{
+	UWorld* World = GetWorld();
+	if (!IsValid(World))
+	{
+		return;
+	}
+	APlayerController* PlayerController = World->GetFirstPlayerController();
+	if (!IsValid(PlayerController))
+	{
+		return;
+	}
+
+	FHitResult HitResult;
+	float HalfCapsuleSize = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	FVector StartPosition = GetActorLocation() + FVector::UpVector * HalfCapsuleSize;
+	FVector EndPosition = StartPosition + GetFirstPersonCameraComponent()->GetForwardVector() * 10000.f;
+	World->LineTraceSingleByChannel(HitResult, StartPosition, EndPosition, ECollisionChannel::ECC_Visibility);
+
+	RewindCube = Cast<ARewindActor>(HitResult.GetActor());
+	if (!IsValid(RewindCube))
+	{
+		// Hit actor isn't a rewind cube
+		return;
+	}
+
+	RewindCube->TriggerRewind();
 }
 
 FCollisionQueryParams AFractureCharacter::GetIgnoreCharacterParams() const
