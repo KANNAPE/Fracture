@@ -10,8 +10,7 @@ UENUM(BlueprintType)
 enum ECustomMovementMode
 {
 	CMOVE_None			UMETA(Hidden),
-	CMOVE_Sliding		UMETA(DisplayName = "Sliding"),
-	CMOVE_JetFlying		UMETA(DisplayName = "Jet Flying"),
+	CMOVE_Flying		UMETA(DisplayName = "Jet Flying"),
 	CMOVE_MAX			UMETA(Hidden)
 };
 
@@ -51,14 +50,42 @@ class FRACTURE_API UElytraMovementComponent : public UCharacterMovementComponent
 		virtual FSavedMovePtr AllocateNewMove() override;
 	};
 
-	// Parameters
-	UPROPERTY(EditDefaultsOnly) float Sprint_MaxWalkSpeed = 1000.f;
-	UPROPERTY(EditDefaultsOnly) float Walk_MaxWalkSpeed = 500.f;
+public:
+	UElytraMovementComponent();
 
-	UPROPERTY(EditDefaultsOnly) float Slide_MinSpeed = 350.f;
-	UPROPERTY(EditDefaultsOnly) float Slide_EnterImpulse = 500.f;
-	UPROPERTY(EditDefaultsOnly) float Slide_GravityForce = 5000.f;
-	UPROPERTY(EditDefaultsOnly) float Slide_Friction = 1.3f;
+	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
+
+	// Flying temp
+	bool IsFlying() const;
+	void PhysFlying(float DeltaTime, int32 Iterations);
+
+	UFUNCTION()
+	void TrySwitchMode();
+
+	// Sprint
+	void SprintPressed();
+	void SprintReleased();
+
+	// Crouch
+	void CrouchPressed();
+
+	virtual bool CanCrouchInCurrentState() const override;
+
+	// Custom movement mode getter
+	UFUNCTION(BlueprintPure)
+	bool IsCustomMovementMode(ECustomMovementMode InCustomMovementMode) const;
+
+
+	// Parameters
+	UPROPERTY(EditDefaultsOnly, Category = "Sprinting") 
+	float Sprint_MaxWalkSpeed = 1000.f;
+	UPROPERTY(EditDefaultsOnly, Category = "Sprinting") 
+	float Walk_MaxWalkSpeed = 500.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Flying")
+	float Flying_MaxPropulsionForce = 50.f;
+	UPROPERTY(EditDefaultsOnly, Category = "Flying")
+	float Flying_VelocityLerpTime = .2f;
 
 	UPROPERTY(Transient) class AFractureCharacter* FractureCharacterOwner;
 
@@ -68,9 +95,6 @@ class FRACTURE_API UElytraMovementComponent : public UCharacterMovementComponent
 
 	// Temp
 	ECustomMovementMode CMovementMode;
-
-public:
-	UElytraMovementComponent();
 	
 protected:
 	virtual void InitializeComponent() override;
@@ -78,36 +102,15 @@ protected:
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity) override;
 
-	// where the crouch mechanic is being handled
-	// (and we need to set variables for the slide before the crouch is being updated)
-	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
+	// Handles all the physics for the custom movement modes
+	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
 
-	// handles all the physics for the custom movement modes
-	virtual void PhysCustom(float deltaTime, int32 Iterations) override;
-	
-public:
-	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 
-	// JetFlying temp
-	FORCEINLINE bool IsJetFlying() const { return CMovementMode == CMOVE_JetFlying; }
-	void SetFlyingMode(const bool Flying = true);
+	UPROPERTY(BlueprintReadWrite)
+	FVector LerpedDirectionalVelocity;
 
-	// Sprint
-	UFUNCTION(BlueprintCallable) void SprintPressed();
-	UFUNCTION(BlueprintCallable) void SprintReleased();
-
-	// Crouch
-	UFUNCTION(BlueprintCallable) void CrouchPressed();
-	
-	virtual bool IsMovingOnGround() const override;
-	virtual bool CanCrouchInCurrentState() const override;
-
-	// Slide
-	void EnterSlide();
-	void ExitSlide();
-	void PhysSliding(float deltaTime, int32 Iterations);
-	bool GetSlideSurface(FHitResult& Hit) const;
-
-	// Custom movement mode getter
-	UFUNCTION(BlueprintPure) bool IsCustomMovementMode(ECustomMovementMode InCustomMovementMode) const; 
+private:
+	float FlyingLerpTimer;
+	FVector InitialLerpVelocity;
+	FVector TargetLerpVelocity;
 };

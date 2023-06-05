@@ -9,6 +9,7 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogFracture, Log, All);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUseItem);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnModeSwitched);
 
 class USkeletalMeshComponent;
 class UCameraComponent;
@@ -21,23 +22,27 @@ class FRACTURE_API AFractureCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-	UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
-	USkeletalMeshComponent* Mesh1P;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
-	UCameraComponent* FirstPersonCameraComponent;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
-	UElytraMovementComponent* ElytraMovementComponent;
-
-	// For now, we'll place the suit in the level, and we'll switch the possessed pawn when calling SwitchMode
-	UPROPERTY(VisibleAnywhere)
-	AFractureSuit* Suit;
-
 public:
 	AFractureCharacter(const FObjectInitializer& ObjectInitializer);
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	FORCEINLINE USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
+	FORCEINLINE UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
+	FORCEINLINE UElytraMovementComponent* GetElytraMovementComponent() const { return ElytraMovementComponent; }
+
+	FCollisionQueryParams GetIgnoreCharacterParams() const;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	float TurnRateGamepad;
+	UPROPERTY(BlueprintAssignable, Category = "Interaction")
+	FOnUseItem OnUseItem;
+	
+	FOnModeSwitched OnModeSwitchedDelegate;
+
+	// Rewind
+	UPROPERTY()
+	ARewindActor* RewindCube;
 
 protected:
 	virtual void BeginPlay() override;
@@ -57,29 +62,21 @@ protected:
 	// Crouch
 	void ToggleCrouching();
 
-	// Fly (basic method)
-	void SwitchMode();
-
-	// Fly (movement mode method)
-	void ToggleFlying();
+	// Fly
+	void TrySwitchMode();
 
 	// Rewind
 	void TriggerRewind();
 
-public:
-	FORCEINLINE USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
-	FORCEINLINE UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
-	FORCEINLINE UElytraMovementComponent* GetElytraMovementComponent() const { return ElytraMovementComponent; }
+private:
+	UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
+	USkeletalMeshComponent* Mesh1P;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	UCameraComponent* FirstPersonCameraComponent;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
+	UElytraMovementComponent* ElytraMovementComponent;
 
-	FCollisionQueryParams GetIgnoreCharacterParams() const;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	float TurnRateGamepad;
-
-	UPROPERTY(BlueprintAssignable, Category = "Interaction")
-	FOnUseItem OnUseItem;
-
-	// Rewind
-	UPROPERTY()
-	ARewindActor* RewindCube;
+	// For now, we'll place the suit in the level, and we'll switch the possessed pawn when calling SwitchMode
+	UPROPERTY(VisibleAnywhere)
+	AFractureSuit* Suit;
 };

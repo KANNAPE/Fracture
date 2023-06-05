@@ -19,6 +19,7 @@ AFractureCharacter::AFractureCharacter(const FObjectInitializer& ObjectInitializ
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UElytraMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	ElytraMovementComponent = Cast<UElytraMovementComponent>(GetCharacterMovement());
+	check(ElytraMovementComponent);
 	
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(55.f, 96.0f);
@@ -66,9 +67,8 @@ void AFractureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	PlayerInputComponent->BindAxis("Turn Right / Left Mouse", this, &APawn::AddControllerYawInput);
 	PlayerInputComponent->BindAxis("Look Up / Down Mouse", this, &APawn::AddControllerPitchInput);
 
-	// Bind Switch Walking <-> JetFlying event
-	PlayerInputComponent->BindAction("SwitchMode", IE_Pressed, this, &AFractureCharacter::SwitchMode);
-	PlayerInputComponent->BindAction("TestJetFlyMode", IE_Pressed, this, &AFractureCharacter::ToggleFlying);
+	// Bind switch Walking <-> Flying event
+	PlayerInputComponent->BindAction("SwitchMode", IE_Pressed, this, &AFractureCharacter::TrySwitchMode);
 
 	// Bind Rewind events
 	PlayerInputComponent->BindAction("TriggerRewind", IE_Pressed, this, &AFractureCharacter::TriggerRewind);
@@ -97,27 +97,23 @@ void AFractureCharacter::OnPrimaryAction()
 
 void AFractureCharacter::Sprint()
 {
-	check(ElytraMovementComponent)
 	ElytraMovementComponent->SprintPressed();
 }
 
 void AFractureCharacter::StopSprinting()
 {
-	check(ElytraMovementComponent)
 	ElytraMovementComponent->SprintReleased();
 }
 
 void AFractureCharacter::ToggleCrouching()
 {
-	check(ElytraMovementComponent)
 	ElytraMovementComponent->CrouchPressed();
 }
 
 void AFractureCharacter::MoveForward(float Val)
 {
-	check(ElytraMovementComponent)
 	// If the character is flying, WASD keys are not used.
-	if(!ElytraMovementComponent->IsJetFlying())
+	if(!ElytraMovementComponent->IsFlying())
 	{
 		if (Val != 0.0f)
 		{
@@ -129,9 +125,8 @@ void AFractureCharacter::MoveForward(float Val)
 
 void AFractureCharacter::MoveRight(float Val)
 {
-	check(ElytraMovementComponent)
 	// If the character is flying, WASD keys are not used.
-	if(!ElytraMovementComponent->IsJetFlying())
+	if(!ElytraMovementComponent->IsFlying())
 	{
 		if (Val != 0.0f)
 		{
@@ -141,48 +136,9 @@ void AFractureCharacter::MoveRight(float Val)
 	}
 }
 
-void AFractureCharacter::SwitchMode()
+void AFractureCharacter::TrySwitchMode()
 {
-	const UWorld* World = GetWorld();
-	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0);
-
-	if(IsValid(PlayerController) && IsValid(Suit))
-	{
-		PlayerController->Possess(Suit);
-	}
-
-	// TODO : Switch the feature of the suit to a custom movement mode, CMOVE_JetFlying
-	// 
-	// auto* ElytraMovementComponent = Cast<UElytraMovementComponent>(GetCharacterMovement());
-	//
-	// if(!IsValid(ElytraMovementComponent))
-	// {
-	// 	return;
-	// }
-	//
-	// // CMovementMode = ECustomMovementMode::CMOVE_Walking
-	// if(!ElytraMovementComponent->IsJetFlying())
-	// {
-	// 	// Can't fly if the character is grounded
-	// 	if(ElytraMovementComponent->IsMovingOnGround())
-	// 	{
-	// 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Cannot initiate flying while character is grounded!")));
-	// 		return;
-	// 	}
-	//
-	// 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Flying mode (fun)")));
-	// 	ElytraMovementComponent->SetFlyingMode();
-	// 	return;
-	// }
-	//
-	// // CMovementMode = ECustomMovementMode::CMOVE_JetFlying
-	// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Walking mode (boring)")));
-	// ElytraMovementComponent->SetFlyingMode(false);
-}
-
-void AFractureCharacter::ToggleFlying()
-{
-	
+	OnModeSwitchedDelegate.Broadcast();
 }
 
 void AFractureCharacter::TriggerRewind()
@@ -225,8 +181,3 @@ FCollisionQueryParams AFractureCharacter::GetIgnoreCharacterParams() const
 
 	return Params;
 }
-
-
-
-
-

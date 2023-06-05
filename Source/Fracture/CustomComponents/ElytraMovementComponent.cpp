@@ -4,6 +4,7 @@
 #include "ElytraMovementComponent.h"
 
 #include "Components/CapsuleComponent.h"
+#include "Camera/CameraComponent.h"
 #include "Fracture/Character/FractureCharacter.h"
 #include "GameFramework/Character.h"
 
@@ -75,6 +76,13 @@ void UElytraMovementComponent::InitializeComponent()
 	Super::InitializeComponent();
 
 	FractureCharacterOwner = Cast<AFractureCharacter>(GetOwner());
+	if (!IsValid(FractureCharacterOwner))
+	{
+		UE_LOG(LogEngine, Fatal, TEXT("Invalid owner component"));
+		return;
+	}
+
+	FractureCharacterOwner->OnModeSwitchedDelegate.AddUniqueDynamic(this, &UElytraMovementComponent::TrySwitchMode);
 }
 
 void UElytraMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
@@ -103,33 +111,14 @@ void UElytraMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVect
 	Safe_bPrevWantsToCrouch = bWantsToCrouch;
 }
 
-void UElytraMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
+void UElytraMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 {
-	if (MovementMode == MOVE_Walking && !bWantsToCrouch && Safe_bPrevWantsToCrouch)
-	{
-		FHitResult PotentialHitSurface;
-		if(Velocity.SizeSquared() > Slide_MinSpeed * Slide_MinSpeed && GetSlideSurface(PotentialHitSurface))
-		{
-			EnterSlide();
-		}
-	}
-
-	if (IsCustomMovementMode(CMOVE_Sliding) && !bWantsToCrouch)
-	{
-		ExitSlide();
-	}
-
-	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
-}
-
-void UElytraMovementComponent::PhysCustom(float deltaTime, int32 Iterations)
-{
-	Super::PhysCustom(deltaTime, Iterations);
+	Super::PhysCustom(DeltaTime, Iterations);
 
 	switch(CustomMovementMode)
 	{
-	case CMOVE_Sliding:
-		PhysSliding(deltaTime, Iterations);
+	case CMOVE_Flying:
+		PhysFlying(DeltaTime, Iterations);
 		break;
 
 	default:
@@ -155,133 +144,163 @@ FNetworkPredictionData_Client* UElytraMovementComponent::GetPredictionData_Clien
 #pragma endregion
 
 
-void UElytraMovementComponent::SetFlyingMode(const bool Flying)
-{
-	CMovementMode = Flying ? CMOVE_JetFlying : CMOVE_None;
-}
-
+// Sprint
 void UElytraMovementComponent::SprintPressed()
 {
 	Safe_bWantsToSprint = true;
 }
-
 void UElytraMovementComponent::SprintReleased()
 {
 	Safe_bWantsToSprint = false;
 }
 
+// Crouch
 void UElytraMovementComponent::CrouchPressed()
 {
 	bWantsToCrouch = !bWantsToCrouch;
 }
-
-bool UElytraMovementComponent::IsMovingOnGround() const
-{
-	return Super::IsMovingOnGround() || IsCustomMovementMode(CMOVE_Sliding);
-}
-
 bool UElytraMovementComponent::CanCrouchInCurrentState() const
 {
 	return Super::CanCrouchInCurrentState() && IsMovingOnGround();
 }
 
-void UElytraMovementComponent::EnterSlide()
+// Flying
+void UElytraMovementComponent::TrySwitchMode()
 {
-	bWantsToCrouch = true;
-	Velocity += Velocity.GetSafeNormal2D() * Slide_EnterImpulse;
-	SetMovementMode(MOVE_Custom, CMOVE_Sliding);
-}
+	if (MovementMode == MOVE_Custom && CustomMovementMode == CMOVE_Flying)
+	{
+		// Switch back to falling
+		LerpedDirectionalVelocity = FVector::ZeroVector;
+		SetMovementMode(MOVE_Falling);
+		return;
+	}
 
-void UElytraMovementComponent::ExitSlide()
+	// Else, try to switch to flying
+	if (!IsMovingOnGround())
+	{
+		FlyingLerpTimer = 0.f;
+		InitialLerpVelocity = FractureCharacterOwner->GetFirstPersonCameraComponent()->GetForwardVector().GetSafeNormal2D();
+		TargetLerpVelocity = InitialLerpVelocity;
+		SetMovementMode(MOVE_Custom, CMOVE_Flying);
+	}
+}
+bool UElytraMovementComponent::IsFlying() const 
 {
-	bWantsToCrouch = false;
-
-	const FQuat NewRotation = FRotationMatrix::MakeFromXZ(UpdatedComponent->GetForwardVector().GetSafeNormal2D(), FVector::UpVector).ToQuat();
-	FHitResult Hit;
-	SafeMoveUpdatedComponent(FVector::ZeroVector, NewRotation, true, Hit);
-	SetMovementMode(MOVE_Walking);
+	return CMovementMode == CMOVE_Flying;
 }
-
-// Very fat function, the heart of all custom movement modes, so I guess I'll have to write down how it works
-void UElytraMovementComponent::PhysSliding(float deltaTime, int32 Iterations)
+void UElytraMovementComponent::PhysFlying(float DeltaTime, int32 Iterations)
 {
 	// Boilerplate code, prevents the delta time value to be rounded to 0 (and so avoids division by 0)
-	if(deltaTime < MIN_TICK_TIME)
+	if (DeltaTime < MIN_TICK_TIME)
 	{
 		return;
 	}
 
 	RestorePreAdditiveRootMotionVelocity();
 
-	FHitResult SurfaceHit;
-	if(!GetSlideSurface(SurfaceHit) || Velocity.SizeSquared() < Slide_MinSpeed * Slide_MinSpeed)
-	{
-		ExitSlide();
-		StartNewPhysics(deltaTime, Iterations);
-		return;
-	}
-
-	// Applying surface gravity to the velocity, so the character doesn't fly off from sliding
-	// (it sticks to the ground)
-	Velocity += Slide_GravityForce * FVector::DownVector * deltaTime;
-
-	// Checking the input vector (Acceleration) for left or right inputs, so we can strafe while sliding
-	// (we then clamp the value so it's not as fast as if we were walking normally)
-	// Returns 0 if the player isn't pressing any keys
-	if(FMath::Abs(FVector::DotProduct(Acceleration.GetSafeNormal(), UpdatedComponent->GetRightVector())) > .5)
-	{
-		Acceleration = Acceleration.ProjectOnTo(UpdatedComponent->GetRightVector());
-	}
-	else
-	{
-		Acceleration = FVector::ZeroVector;
-	}
-
-	// Set the rest of the Velocity only if we don't have any root motion
-	// We set the gravity before because CalcVelocity DOES NOT APPLY GRAVITY
-	if(!HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity())
-	{
-		CalcVelocity(deltaTime, Slide_Friction, true, GetMaxBrakingDeceleration());
-	}
-	ApplyRootMotionToVelocity(deltaTime);
-
 	// Perform Move
 	++Iterations;
 	bJustTeleported = false;
 
-	FVector OldLocation = UpdatedComponent->GetComponentLocation();
-	FQuat OldRotation = UpdatedComponent->GetComponentRotation().Quaternion();
-	FHitResult Hit(1.f);
-	FVector Adjusted = Velocity * deltaTime;
-	FVector VelPlaneDir = FVector::VectorPlaneProject(Velocity, SurfaceHit.Normal).GetSafeNormal();
-	FQuat NewRotation = FRotationMatrix::MakeFromXZ(VelPlaneDir, SurfaceHit.Normal).ToQuat();
-	SafeMoveUpdatedComponent(Adjusted, NewRotation, true, Hit);
+	FVector CameraForwardVector = FractureCharacterOwner->GetFirstPersonCameraComponent()->GetForwardVector();
 
-	if(Hit.Time < 1.f)
+	if (FlyingLerpTimer >= Flying_VelocityLerpTime)
 	{
-		HandleImpact(Hit, deltaTime, Adjusted);
+		FlyingLerpTimer = 0.f;
+		InitialLerpVelocity = TargetLerpVelocity;
+		TargetLerpVelocity = CameraForwardVector.GetSafeNormal2D();
+	}
+
+	float Alpha = FlyingLerpTimer / Flying_VelocityLerpTime;
+	LerpedDirectionalVelocity = FMath::Lerp(InitialLerpVelocity, TargetLerpVelocity, Alpha);
+	Velocity = (LerpedDirectionalVelocity + CameraForwardVector.Z * FVector::UpVector) * Flying_MaxPropulsionForce;
+
+	const FVector OldLocation = UpdatedComponent->GetComponentLocation();
+	const FQuat Rotation = UpdatedComponent->GetComponentRotation().Quaternion();
+	const FVector Adjusted = Velocity * DeltaTime; // dx = dv * t
+	FHitResult Hit(1.f);
+	SafeMoveUpdatedComponent(Adjusted, Rotation, true, Hit);
+	if (Hit.Time < 1.f)
+	{
+		HandleImpact(Hit, DeltaTime, Adjusted);
 		SlideAlongSurface(Adjusted, 1.f - Hit.Time, Hit.Normal, Hit, true);
 	}
 
-	FHitResult NewSurfaceHit;
-	if(!GetSlideSurface(NewSurfaceHit) || Velocity.SizeSquared() < Slide_MinSpeed * Slide_MinSpeed)
-	{
-		ExitSlide();
-	}
-
-	if(!bJustTeleported && !HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity())
-	{
-		Velocity = (UpdatedComponent->GetComponentLocation() - OldLocation) / deltaTime;
-	}
+	FlyingLerpTimer += DeltaTime;
 }
 
-bool UElytraMovementComponent::GetSlideSurface(FHitResult& Hit) const
-{
-	const FVector Start = UpdatedComponent->GetComponentLocation();
-	const FVector End = Start + CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.f * FVector::DownVector;
-	const FName ProfileName = TEXT("BlockAll");
-	return GetWorld()->LineTraceSingleByProfile(Hit, Start, End, ProfileName, FractureCharacterOwner->GetIgnoreCharacterParams());
-}
+// Very fat function, the heart of all custom movement modes, so I guess I'll have to write down how it works
+//void UElytraMovementComponent::PhysSliding(float deltaTime, int32 Iterations)
+//{
+//	// Boilerplate code, prevents the delta time value to be rounded to 0 (and so avoids division by 0)
+//	if(deltaTime < MIN_TICK_TIME)
+//	{
+//		return;
+//	}
+//
+//	RestorePreAdditiveRootMotionVelocity();
+//
+//	FHitResult SurfaceHit;
+//	if(!GetSlideSurface(SurfaceHit) || Velocity.SizeSquared() < Slide_MinSpeed * Slide_MinSpeed)
+//	{
+//		ExitSlide();
+//		StartNewPhysics(deltaTime, Iterations);
+//		return;
+//	}
+//
+//	// Applying surface gravity to the velocity, so the character doesn't fly off from sliding
+//	// (it sticks to the ground)
+//	Velocity += Slide_GravityForce * FVector::DownVector * deltaTime;
+//
+//	// Checking the input vector (Acceleration) for left or right inputs, so we can strafe while sliding
+//	// (we then clamp the value so it's not as fast as if we were walking normally)
+//	// Returns 0 if the player isn't pressing any keys
+//	if(FMath::Abs(FVector::DotProduct(Acceleration.GetSafeNormal(), UpdatedComponent->GetRightVector())) > .5)
+//	{
+//		Acceleration = Acceleration.ProjectOnTo(UpdatedComponent->GetRightVector());
+//	}
+//	else
+//	{
+//		Acceleration = FVector::ZeroVector;
+//	}
+//
+//	// Set the rest of the Velocity only if we don't have any root motion
+//	// We set the gravity before because CalcVelocity DOES NOT APPLY GRAVITY
+//	if(!HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity())
+//	{
+//		CalcVelocity(deltaTime, Slide_Friction, true, GetMaxBrakingDeceleration());
+//	}
+//	ApplyRootMotionToVelocity(deltaTime);
+//
+//	// Perform Move
+//	++Iterations;
+//	bJustTeleported = false;
+//
+//	FVector OldLocation = UpdatedComponent->GetComponentLocation();
+//	FQuat OldRotation = UpdatedComponent->GetComponentRotation().Quaternion();
+//	FHitResult Hit(1.f);
+//	FVector Adjusted = Velocity * deltaTime;
+//	FVector VelPlaneDir = FVector::VectorPlaneProject(Velocity, SurfaceHit.Normal).GetSafeNormal();
+//	FQuat NewRotation = FRotationMatrix::MakeFromXZ(VelPlaneDir, SurfaceHit.Normal).ToQuat();
+//	SafeMoveUpdatedComponent(Adjusted, NewRotation, true, Hit);
+//
+//	if(Hit.Time < 1.f)
+//	{
+//		HandleImpact(Hit, deltaTime, Adjusted);
+//		SlideAlongSurface(Adjusted, 1.f - Hit.Time, Hit.Normal, Hit, true);
+//	}
+//
+//	FHitResult NewSurfaceHit;
+//	if(!GetSlideSurface(NewSurfaceHit) || Velocity.SizeSquared() < Slide_MinSpeed * Slide_MinSpeed)
+//	{
+//		ExitSlide();
+//	}
+//
+//	if(!bJustTeleported && !HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity())
+//	{
+//		Velocity = (UpdatedComponent->GetComponentLocation() - OldLocation) / deltaTime;
+//	}
+//}
 
 bool UElytraMovementComponent::IsCustomMovementMode(ECustomMovementMode InCustomMovementMode) const
 {
